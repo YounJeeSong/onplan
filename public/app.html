@@ -134,6 +134,70 @@ input, textarea, select { font-family: var(--kr); }
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
+  transition: width .22s ease, min-width .22s ease;
+  position: relative;
+  z-index: 50;
+}
+#panel.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+#panel.collapsed > * { opacity: 0; pointer-events: none; }
+
+/* 패널 토글 버튼 — 패널 바깥에 고정 */
+#panel-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 200;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--g400);
+  cursor: pointer;
+  transition: all .12s;
+}
+#panel-toggle:hover { background: var(--bg3); color: var(--g200); }
+#panel-toggle.open { left: calc(var(--panel-w) + 14px); }
+
+/* 모바일 오버레이 */
+#panel-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+#panel-overlay.visible { display: block; }
+
+/* 모바일: 패널 overlay 방식 */
+@media (max-width: 768px) {
+  #panel {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 50;
+    width: var(--panel-w) !important;
+    min-width: var(--panel-w) !important;
+    transform: translateX(0);
+    transition: transform .22s ease;
+  }
+  #panel.collapsed {
+    width: var(--panel-w) !important;
+    min-width: var(--panel-w) !important;
+    transform: translateX(calc(-1 * var(--panel-w)));
+    border-right: 1px solid var(--border);
+  }
+  #panel.collapsed > * { opacity: 1; pointer-events: auto; }
+  #main { margin-left: 0 !important; }
+  #panel-toggle { left: 14px !important; }
+  #panel-toggle.open { left: calc(var(--panel-w) + 14px); }
 }
 
 .panel-hd {
@@ -365,6 +429,7 @@ input, textarea, select { font-family: var(--kr); }
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  transition: margin-left .22s ease;
 }
 
 /* ─ TOP BAR ─ */
@@ -1394,9 +1459,18 @@ input, textarea, select { font-family: var(--kr); }
 </head>
 <body>
 
+<!-- 패널 토글 버튼 -->
+<button id="panel-toggle" class="open" onclick="togglePanel()" title="패널 열기/닫기">
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path id="toggle-icon-path" d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  </svg>
+</button>
+<!-- 모바일 오버레이 -->
+<div id="panel-overlay" onclick="togglePanel()"></div>
+
 <!-- ══════════ LEFT PANEL ══════════ -->
 <div id="panel">
-  <div class="panel-hd">
+  <div class="panel-hd" style="padding-left:48px;">
     <div class="logo">
       <span class="logo-on">ON</span><span class="logo-plan">plan</span>
     </div>
@@ -2808,6 +2882,42 @@ function scrollToSec(id, el) {
 }
 
 // ═══════════════════════════════════════
+// PANEL TOGGLE
+// ═══════════════════════════════════════
+function togglePanel() {
+  const panel = document.getElementById('panel');
+  const btn = document.getElementById('panel-toggle');
+  const overlay = document.getElementById('panel-overlay');
+  const isMobile = window.innerWidth <= 768;
+  const isCollapsed = panel.classList.contains('collapsed');
+
+  if (isCollapsed) {
+    panel.classList.remove('collapsed');
+    btn.classList.add('open');
+    if (isMobile) overlay.classList.add('visible');
+    localStorage.setItem('onplan-panel', 'open');
+  } else {
+    panel.classList.add('collapsed');
+    btn.classList.remove('open');
+    overlay.classList.remove('visible');
+    localStorage.setItem('onplan-panel', 'closed');
+  }
+}
+
+function initPanel() {
+  const isMobile = window.innerWidth <= 768;
+  const saved = localStorage.getItem('onplan-panel');
+  const panel = document.getElementById('panel');
+  const btn = document.getElementById('panel-toggle');
+
+  // 모바일은 기본 닫힘
+  if (isMobile || saved === 'closed') {
+    panel.classList.add('collapsed');
+    btn.classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════
 // THEME TOGGLE
 // ═══════════════════════════════════════
 function toggleTheme() {
@@ -2883,6 +2993,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.head.appendChild(style);
 
   initTheme();
+  initPanel();
   init();
 });
 </script>
